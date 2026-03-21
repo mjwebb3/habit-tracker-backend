@@ -194,6 +194,22 @@ mvn spring-boot:run
 
 The API starts at `http://localhost:8080`.
 
+### Startup seed data
+
+On startup, the app inserts demo data automatically if the database is empty:
+
+- 1 user (`demo_user`)
+- 3 habits (BOOLEAN, NUMBER, TEXT)
+- 8 habit logs
+
+This seed runs only when there are no users, habits, or logs yet.
+
+To disable the seed:
+
+```env
+APP_SEED_ENABLED=false
+```
+
 ### Stop local services
 
 ```bash
