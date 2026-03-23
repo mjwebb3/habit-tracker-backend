@@ -1,5 +1,6 @@
 package com.tp1.habittracker.service;
 
+import com.tp1.habittracker.config.AppJwtProperties;
 import com.tp1.habittracker.domain.model.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -9,7 +10,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
 import javax.crypto.SecretKey;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -18,12 +18,9 @@ public class JwtService {
     private final SecretKey secretKey;
     private final long expirationMs;
 
-    public JwtService(
-            @Value("${app.jwt.secret}") String secret,
-            @Value("${app.jwt.expiration-ms}") long expirationMs
-    ) {
-        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        this.expirationMs = expirationMs;
+    public JwtService(AppJwtProperties properties) {
+        this.secretKey = Keys.hmacShaKeyFor(properties.getSecret().getBytes(StandardCharsets.UTF_8));
+        this.expirationMs = properties.getExpirationMs();
     }
 
     public String generateToken(User user) {

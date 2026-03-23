@@ -22,12 +22,14 @@ public class UserService {
     @SuppressWarnings("null")
     public User createUser(CreateUserRequest request) {
         Objects.requireNonNull(request, "request must not be null");
-        String normalizedUsername = request.username().trim();
-        String normalizedEmail = request.email().trim().toLowerCase(Locale.ROOT);
-        String rawPassword = request.password().trim();
+        String normalizedUsername = normalize(request.username());
+        String normalizedEmail = normalize(request.email()).toLowerCase(Locale.ROOT);
 
-        if (rawPassword.isEmpty()) {
-            throw new IllegalArgumentException("Password is required");
+        if (normalizedUsername.isEmpty()) {
+            throw new IllegalArgumentException("Username is required");
+        }
+        if (normalizedEmail.isEmpty()) {
+            throw new IllegalArgumentException("Email is required");
         }
 
         if (userRepository.existsByUsernameIgnoreCase(normalizedUsername)) {
@@ -35,6 +37,11 @@ public class UserService {
         }
         if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
             throw new DuplicateResourceException("Email already exists");
+        }
+
+        String rawPassword = normalize(request.password());
+        if (rawPassword.isEmpty()) {
+            throw new IllegalArgumentException("Password is required");
         }
 
         User user = User.builder()
@@ -59,5 +66,9 @@ public class UserService {
         } catch (IllegalArgumentException ex) {
             throw new ResourceNotFoundException("User not found with id: " + id);
         }
+    }
+
+    private String normalize(String value) {
+        return value == null ? "" : value.trim();
     }
 }

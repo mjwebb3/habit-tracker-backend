@@ -1,9 +1,9 @@
 package com.tp1.habittracker.controller;
 
 import com.tp1.habittracker.domain.model.User;
+import com.tp1.habittracker.dto.user.CreateUserRequest;
 import com.tp1.habittracker.dto.user.LoginRequest;
 import com.tp1.habittracker.dto.user.LoginResponse;
-import com.tp1.habittracker.dto.user.RegisterRequest;
 import com.tp1.habittracker.dto.user.UserResponse;
 import com.tp1.habittracker.service.AuthService;
 import jakarta.validation.Valid;
@@ -23,7 +23,7 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<UserResponse> register(@Valid @RequestBody CreateUserRequest request) {
         User user = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(user));
     }

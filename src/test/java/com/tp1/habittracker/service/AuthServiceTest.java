@@ -8,8 +8,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.tp1.habittracker.domain.model.User;
+import com.tp1.habittracker.dto.user.CreateUserRequest;
 import com.tp1.habittracker.dto.user.LoginRequest;
-import com.tp1.habittracker.dto.user.RegisterRequest;
 import com.tp1.habittracker.exception.DuplicateResourceException;
 import com.tp1.habittracker.repository.UserRepository;
 import java.util.Optional;
@@ -34,15 +34,17 @@ class AuthServiceTest {
     private JwtService jwtService;
 
     private AuthService authService;
+    private UserService userService;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userRepository, passwordEncoder, jwtService);
+        userService = new UserService(userRepository, passwordEncoder);
+        authService = new AuthService(userRepository, passwordEncoder, jwtService, userService);
     }
 
     @Test
     void registerHashesPasswordAndSavesUser() {
-        RegisterRequest request = new RegisterRequest("  Manu  ", "  USER@Example.COM  ", "  myPassword123  ");
+        CreateUserRequest request = new CreateUserRequest("  Manu  ", "  USER@Example.COM  ", "  myPassword123  ");
         UUID generatedId = UUID.randomUUID();
 
         when(userRepository.existsByUsernameIgnoreCase("Manu")).thenReturn(false);
@@ -67,7 +69,15 @@ class AuthServiceTest {
 
     @Test
     void registerThrowsWhenUsernameAlreadyExists() {
-        RegisterRequest request = new RegisterRequest("manu", "manu@example.com", "Password123");
+        CreateUserRequest request = new CreateUserRequest("manu", "manu@example.com", "Password123");
+        when(userRepository.existsByUsernameIgnoreCase("manu")).thenReturn(true);
+
+        assertThrows(DuplicateResourceException.class, () -> authService.register(request));
+    }
+
+    @Test
+    void registerThrowsWhenUsernameAlreadyExistsEvenWithoutPassword() {
+        CreateUserRequest request = new CreateUserRequest("manu", "manu@example.com", null);
         when(userRepository.existsByUsernameIgnoreCase("manu")).thenReturn(true);
 
         assertThrows(DuplicateResourceException.class, () -> authService.register(request));
@@ -75,7 +85,7 @@ class AuthServiceTest {
 
     @Test
     void registerThrowsWhenEmailAlreadyExists() {
-        RegisterRequest request = new RegisterRequest("manu", "manu@example.com", "Password123");
+        CreateUserRequest request = new CreateUserRequest("manu", "manu@example.com", "Password123");
         when(userRepository.existsByUsernameIgnoreCase("manu")).thenReturn(false);
         when(userRepository.existsByEmailIgnoreCase("manu@example.com")).thenReturn(true);
 
@@ -84,7 +94,7 @@ class AuthServiceTest {
 
     @Test
     void registerThrowsWhenPasswordIsBlank() {
-        RegisterRequest request = new RegisterRequest("manu", "manu@example.com", "   ");
+        CreateUserRequest request = new CreateUserRequest("manu", "manu@example.com", "   ");
 
         assertThrows(IllegalArgumentException.class, () -> authService.register(request));
     }

@@ -189,16 +189,34 @@ Bash:
 cp .env.example .env
 ```
 
-Current required variable:
+Required variables for Docker Compose and app startup:
 
 ```env
-SPRING_DATA_MONGODB_URI=mongodb://root:rootpassword@localhost:27017/habitdb?authSource=admin
-SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/habit_tracker
-SPRING_DATASOURCE_USERNAME=postgres
-SPRING_DATASOURCE_PASSWORD=postgres
+MONGO_INITDB_ROOT_USERNAME=change_me_mongo_user
+MONGO_INITDB_ROOT_PASSWORD=change_me_mongo_password
+MONGO_INITDB_DATABASE=habitdb
+
+POSTGRES_DB=habit_tracker
+POSTGRES_USER=change_me_pg_user
+POSTGRES_PASSWORD=change_me_pg_password
+
+ME_CONFIG_MONGODB_ADMINUSERNAME=change_me_mongo_user
+ME_CONFIG_MONGODB_ADMINPASSWORD=change_me_mongo_password
+ME_CONFIG_MONGODB_SERVER=mongo
+ME_CONFIG_MONGODB_AUTH_DATABASE=admin
+
+SPRING_DATA_MONGODB_URI=mongodb://change_me_mongo_user:change_me_mongo_password@mongo:27017/habitdb?authSource=admin
+SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/habit_tracker
+SPRING_DATASOURCE_USERNAME=change_me_pg_user
+SPRING_DATASOURCE_PASSWORD=change_me_pg_password
 SPRING_JPA_HIBERNATE_DDL_AUTO=update
 SPRING_JPA_SHOW_SQL=true
+APP_JWT_SECRET=change_me_jwt_secret_at_least_32_chars
+APP_JWT_EXPIRATION_MS=86400000
+APP_SEED_ENABLED=true
 ```
+
+Security note: do not commit real secrets. Keep real values only in local `.env`.
 
 ### 3) Run the API
 
