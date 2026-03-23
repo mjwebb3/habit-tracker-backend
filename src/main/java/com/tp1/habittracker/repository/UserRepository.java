@@ -1,9 +1,13 @@
 package com.tp1.habittracker.repository;
 
 import com.tp1.habittracker.domain.model.User;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface UserRepository extends MongoRepository<User, String> {
+public interface UserRepository extends JpaRepository<User, UUID> {
+
+    Optional<User> findByEmail(String email);
 
     boolean existsByEmailIgnoreCase(String email);
 

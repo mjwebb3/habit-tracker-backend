@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,22 +28,34 @@ public class HabitLogController {
     private final HabitLogService habitLogService;
 
     @PostMapping
-    public ResponseEntity<HabitLogResponse> addHabitLog(@Valid @RequestBody CreateHabitLogRequest request) {
-        HabitLog created = habitLogService.addHabitLog(request);
+    public ResponseEntity<HabitLogResponse> addHabitLog(
+            Authentication authentication,
+            @Valid @RequestBody CreateHabitLogRequest request
+    ) {
+        HabitLog created = habitLogService.addHabitLog(extractAuthenticatedUserId(authentication), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(created));
     }
 
     @GetMapping("/habit/{habitId}")
     public List<HabitLogResponse> getLogsByHabit(
+            Authentication authentication,
             @PathVariable String habitId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
     ) {
+        String authenticatedUserId = extractAuthenticatedUserId(authentication);
         List<HabitLog> logs = (from != null && to != null)
-                ? habitLogService.getLogsByHabitAndDateRange(habitId, from, to)
-                : habitLogService.getLogsByHabit(habitId);
+                ? habitLogService.getLogsByHabitAndDateRange(authenticatedUserId, habitId, from, to)
+                : habitLogService.getLogsByHabit(authenticatedUserId, habitId);
 
         return logs.stream().map(this::toResponse).toList();
+    }
+
+    private String extractAuthenticatedUserId(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
+            throw new IllegalArgumentException("Authenticated user is required");
+        }
+        return authentication.getName();
     }
 
     private HabitLogResponse toResponse(HabitLog log) {

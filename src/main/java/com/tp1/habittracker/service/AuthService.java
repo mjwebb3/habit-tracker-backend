@@ -1,27 +1,27 @@
 package com.tp1.habittracker.service;
 
 import com.tp1.habittracker.domain.model.User;
-import com.tp1.habittracker.dto.user.CreateUserRequest;
+import com.tp1.habittracker.dto.user.LoginRequest;
+import com.tp1.habittracker.dto.user.RegisterRequest;
 import com.tp1.habittracker.exception.DuplicateResourceException;
-import com.tp1.habittracker.exception.ResourceNotFoundException;
 import com.tp1.habittracker.repository.UserRepository;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class UserService {
+public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
-    @SuppressWarnings("null")
-    public User createUser(CreateUserRequest request) {
+    public User register(RegisterRequest request) {
         Objects.requireNonNull(request, "request must not be null");
+
         String normalizedUsername = request.username().trim();
         String normalizedEmail = request.email().trim().toLowerCase(Locale.ROOT);
         String rawPassword = request.password().trim();
@@ -29,7 +29,6 @@ public class UserService {
         if (rawPassword.isEmpty()) {
             throw new IllegalArgumentException("Password is required");
         }
-
         if (userRepository.existsByUsernameIgnoreCase(normalizedUsername)) {
             throw new DuplicateResourceException("Username already exists");
         }
@@ -38,26 +37,27 @@ public class UserService {
         }
 
         User user = User.builder()
-            .username(normalizedUsername)
-            .email(normalizedEmail)
-            .password(passwordEncoder.encode(rawPassword))
-            .build();
+                .username(normalizedUsername)
+                .email(normalizedEmail)
+                .password(passwordEncoder.encode(rawPassword))
+                .build();
 
         return userRepository.save(user);
     }
 
-    public User getUserById(String id) {
-        String userId = Objects.requireNonNull(id, "id must not be null");
-        UUID parsedUserId = parseUuidOrThrowNotFound(userId);
-        return userRepository.findById(parsedUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
-    }
+    public String login(LoginRequest request) {
+        Objects.requireNonNull(request, "request must not be null");
 
-    private UUID parseUuidOrThrowNotFound(String id) {
-        try {
-            return UUID.fromString(id);
-        } catch (IllegalArgumentException ex) {
-            throw new ResourceNotFoundException("User not found with id: " + id);
+        String normalizedEmail = request.email().trim().toLowerCase(Locale.ROOT);
+        String rawPassword = request.password();
+
+        User user = userRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
+
+        if (user.getPassword() == null || !passwordEncoder.matches(rawPassword, user.getPassword())) {
+            throw new IllegalArgumentException("Invalid credentials");
         }
+
+        return jwtService.generateToken(user);
     }
 }

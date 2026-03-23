@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -29,12 +30,12 @@ public class HabitService {
     private final HabitLogRepository habitLogRepository;
 
     @SuppressWarnings("null")
-    public Habit createHabit(CreateHabitRequest request) {
+    public Habit createHabit(String authenticatedUserId, CreateHabitRequest request) {
         Objects.requireNonNull(request, "request must not be null");
-        String userId = Objects.requireNonNull(request.userId(), "userId must not be null");
+        String userId = Objects.requireNonNull(authenticatedUserId, "authenticated userId must not be null");
         String normalizedName = request.name().trim();
 
-        if (!userRepository.existsById(userId)) {
+        if (!userExists(userId)) {
             throw new ResourceNotFoundException("User not found with id: " + userId);
         }
 
@@ -49,22 +50,22 @@ public class HabitService {
         return habitRepository.save(habit);
     }
 
-    public List<Habit> getHabitsByUserId(String userId) {
-        String validatedUserId = Objects.requireNonNull(userId, "userId must not be null");
+    public List<Habit> getHabitsByUserId(String authenticatedUserId) {
+        String validatedUserId = Objects.requireNonNull(authenticatedUserId, "authenticated userId must not be null");
 
-        if (!userRepository.existsById(validatedUserId)) {
+        if (!userExists(validatedUserId)) {
             throw new ResourceNotFoundException("User not found with id: " + validatedUserId);
         }
 
         return habitRepository.findAllByUserIdOrderByCreatedAtDesc(validatedUserId);
     }
 
-    public Habit updateHabit(String habitId, UpdateHabitRequest request) {
+    public Habit updateHabit(String authenticatedUserId, String habitId, UpdateHabitRequest request) {
         Objects.requireNonNull(request, "request must not be null");
+        String validatedUserId = Objects.requireNonNull(authenticatedUserId, "authenticated userId must not be null");
         String validatedHabitId = Objects.requireNonNull(habitId, "habitId must not be null");
 
-        Habit existingHabit = habitRepository.findById(validatedHabitId)
-                .orElseThrow(() -> new ResourceNotFoundException("Habit not found with id: " + validatedHabitId));
+        Habit existingHabit = getOwnedHabitOrThrow(validatedUserId, validatedHabitId);
 
         existingHabit.setName(request.name().trim());
         existingHabit.setType(request.type());
@@ -73,23 +74,22 @@ public class HabitService {
         return habitRepository.save(existingHabit);
     }
 
-    public void deleteHabit(String habitId) {
+    public void deleteHabit(String authenticatedUserId, String habitId) {
+        String validatedUserId = Objects.requireNonNull(authenticatedUserId, "authenticated userId must not be null");
         String validatedHabitId = Objects.requireNonNull(habitId, "habitId must not be null");
 
-        if (!habitRepository.existsById(validatedHabitId)) {
-            throw new ResourceNotFoundException("Habit not found with id: " + validatedHabitId);
-        }
+        getOwnedHabitOrThrow(validatedUserId, validatedHabitId);
 
         habitLogRepository.deleteAllByHabitId(validatedHabitId);
         habitRepository.deleteById(validatedHabitId);
     }
 
-    public int calculateCurrentStreak(String habitId) {
+    public int calculateCurrentStreak(String authenticatedUserId, String habitId) {
+        String validatedUserId = Objects.requireNonNull(authenticatedUserId, "authenticated userId must not be null");
         String validatedHabitId = Objects.requireNonNull(habitId, "habitId must not be null");
         LocalDate today = LocalDate.now();
 
-        Habit habit = habitRepository.findById(validatedHabitId)
-                .orElseThrow(() -> new ResourceNotFoundException("Habit not found with id: " + validatedHabitId));
+        Habit habit = getOwnedHabitOrThrow(validatedUserId, validatedHabitId);
 
         List<HabitLogDateView> logDates = habitLogRepository
             .findAllProjectedByHabitIdAndDateLessThanEqualOrderByDateDesc(validatedHabitId, today);
@@ -103,13 +103,13 @@ public class HabitService {
         };
     }
 
-    public double calculateCompletionLast7Days(String habitId) {
+    public double calculateCompletionLast7Days(String authenticatedUserId, String habitId) {
+        String validatedUserId = Objects.requireNonNull(authenticatedUserId, "authenticated userId must not be null");
         String validatedHabitId = Objects.requireNonNull(habitId, "habitId must not be null");
         LocalDate today = LocalDate.now();
         LocalDate fromDate = today.minusDays(6);
 
-        Habit habit = habitRepository.findById(validatedHabitId)
-                .orElseThrow(() -> new ResourceNotFoundException("Habit not found with id: " + validatedHabitId));
+        Habit habit = getOwnedHabitOrThrow(validatedUserId, validatedHabitId);
 
         List<HabitLogDateView> logDates = habitLogRepository
                 .findAllProjectedByHabitIdAndDateLessThanEqualOrderByDateDesc(validatedHabitId, today);
@@ -209,5 +209,24 @@ public class HabitService {
         int weekBasedYear = date.get(weekFields.weekBasedYear());
         int weekOfYear = date.get(weekFields.weekOfWeekBasedYear());
         return weekBasedYear + "-" + weekOfYear;
+    }
+
+    private Habit getOwnedHabitOrThrow(String authenticatedUserId, String habitId) {
+        Habit habit = habitRepository.findById(habitId)
+                .orElseThrow(() -> new ResourceNotFoundException("Habit not found with id: " + habitId));
+
+        if (!habit.getUserId().equals(authenticatedUserId)) {
+            throw new ResourceNotFoundException("Habit not found with id: " + habitId);
+        }
+
+        return habit;
+    }
+
+    private boolean userExists(String userId) {
+        try {
+            return userRepository.existsById(UUID.fromString(userId));
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
     }
 }

@@ -47,6 +47,7 @@ class HabitServiceTest {
 
         Habit dailyHabit = Habit.builder()
                 .id("habit-1")
+            .userId("user-1")
                 .frequency(Frequency.DAILY)
                 .build();
 
@@ -59,7 +60,7 @@ class HabitServiceTest {
                         dateView(today.minusDays(4))
                 ));
 
-        int streak = habitService.calculateCurrentStreak("habit-1");
+        int streak = habitService.calculateCurrentStreak("user-1", "habit-1");
 
         assertEquals(3, streak);
     }
@@ -70,6 +71,7 @@ class HabitServiceTest {
 
         Habit weeklyHabit = Habit.builder()
                 .id("habit-2")
+            .userId("user-1")
                 .frequency(Frequency.WEEKLY)
                 .build();
 
@@ -81,7 +83,7 @@ class HabitServiceTest {
                         dateView(today.minusWeeks(3))
                 ));
 
-        int streak = habitService.calculateCurrentStreak("habit-2");
+        int streak = habitService.calculateCurrentStreak("user-1", "habit-2");
 
         assertEquals(2, streak);
     }
@@ -92,6 +94,7 @@ class HabitServiceTest {
 
         Habit dailyHabit = Habit.builder()
                 .id("habit-3")
+            .userId("user-1")
                 .frequency(Frequency.DAILY)
                 .build();
 
@@ -102,7 +105,7 @@ class HabitServiceTest {
                         dateView(today.minusDays(3))
                 ));
 
-        double completion = habitService.calculateCompletionLast7Days("habit-3");
+        double completion = habitService.calculateCompletionLast7Days("user-1", "habit-3");
 
         assertEquals(28.57, completion);
     }
@@ -111,7 +114,7 @@ class HabitServiceTest {
     void calculateCurrentStreakThrowsWhenHabitDoesNotExist() {
         when(habitRepository.findById("missing-habit")).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> habitService.calculateCurrentStreak("missing-habit"));
+        assertThrows(ResourceNotFoundException.class, () -> habitService.calculateCurrentStreak("user-1", "missing-habit"));
     }
 
     private HabitLogDateView dateView(LocalDate date) {

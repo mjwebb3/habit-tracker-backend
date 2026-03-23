@@ -40,6 +40,7 @@ public class StartupDataSeeder implements CommandLineRunner {
         User user = userRepository.save(User.builder()
                 .username("demo_user")
                 .email("demo.user@example.com")
+                .password("seed-password")
                 .build());
 
                 if (user == null || user.getId() == null) {
@@ -48,7 +49,7 @@ public class StartupDataSeeder implements CommandLineRunner {
                 }
 
         Habit hydrationHabit = habitRepository.save(Habit.builder()
-                .userId(user.getId())
+                .userId(user.getId().toString())
                 .name("Drink 2L water")
                 .type(HabitType.BOOLEAN)
                 .frequency(Frequency.DAILY)
@@ -56,7 +57,7 @@ public class StartupDataSeeder implements CommandLineRunner {
                 .build());
 
         Habit readingHabit = habitRepository.save(Habit.builder()
-                .userId(user.getId())
+                .userId(user.getId().toString())
                 .name("Read pages")
                 .type(HabitType.NUMBER)
                 .frequency(Frequency.DAILY)
@@ -64,7 +65,7 @@ public class StartupDataSeeder implements CommandLineRunner {
                 .build());
 
         Habit planningHabit = habitRepository.save(Habit.builder()
-                .userId(user.getId())
+                .userId(user.getId().toString())
                 .name("Weekly planning")
                 .type(HabitType.TEXT)
                 .frequency(Frequency.WEEKLY)

@@ -2,11 +2,19 @@
 
 Backend REST API for tracking habits, logs, streaks, and completion metrics.
 
+Persistence model:
+
+- `User` is stored in PostgreSQL (JPA)
+- `Habit` and `HabitLog` are stored in MongoDB
+- Relationship is maintained by `userId` as a String UUID in Habit documents
+
 ## Tech stack
 
 - Java 21
 - Spring Boot
 - Spring Data MongoDB
+- Spring Data JPA
+- PostgreSQL
 - Lombok
 - Jakarta Validation
 
@@ -33,7 +41,7 @@ Backend REST API for tracking habits, logs, streaks, and completion metrics.
 
 ```json
 {
-	"id": "65f8cc4c3e4f9d2bc3ab1201",
+	"id": "7d1bf359-e8cf-4812-9e50-106800f52bb6",
 	"username": "manu_dev",
 	"email": "manu.dev@example.com"
 }
@@ -47,7 +55,7 @@ Backend REST API for tracking habits, logs, streaks, and completion metrics.
 
 ```json
 {
-	"userId": "65f8cc4c3e4f9d2bc3ab1201",
+	"userId": "7d1bf359-e8cf-4812-9e50-106800f52bb6",
 	"name": "Drink 2L water",
 	"type": "BOOLEAN",
 	"frequency": "DAILY"
@@ -59,7 +67,7 @@ Backend REST API for tracking habits, logs, streaks, and completion metrics.
 ```json
 {
 	"id": "65f8cc7b3e4f9d2bc3ab1202",
-	"userId": "65f8cc4c3e4f9d2bc3ab1201",
+	"userId": "7d1bf359-e8cf-4812-9e50-106800f52bb6",
 	"name": "Drink 2L water",
 	"type": "BOOLEAN",
 	"frequency": "DAILY",
@@ -155,13 +163,14 @@ Backend REST API for tracking habits, logs, streaks, and completion metrics.
 - Maven 3.9+
 - Docker Desktop
 
-### 1) Start Docker Mongo
+### 1) Start Docker services
 
 ```bash
-docker compose up -d mongo mongo-express
+docker compose up -d mongo postgres mongo-express
 ```
 
 MongoDB will be available at `localhost:27017`.
+PostgreSQL will be available at `localhost:5432`.
 Mongo Express UI will be available at `http://localhost:8081`.
 
 ### 2) Configure `.env`
@@ -184,6 +193,11 @@ Current required variable:
 
 ```env
 SPRING_DATA_MONGODB_URI=mongodb://root:rootpassword@localhost:27017/habitdb?authSource=admin
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/habit_tracker
+SPRING_DATASOURCE_USERNAME=postgres
+SPRING_DATASOURCE_PASSWORD=postgres
+SPRING_JPA_HIBERNATE_DDL_AUTO=update
+SPRING_JPA_SHOW_SQL=true
 ```
 
 ### 3) Run the API
@@ -198,9 +212,9 @@ The API starts at `http://localhost:8080`.
 
 On startup, the app inserts demo data automatically if the database is empty:
 
-- 1 user (`demo_user`)
-- 3 habits (BOOLEAN, NUMBER, TEXT)
-- 8 habit logs
+- 1 user in PostgreSQL (`demo_user`)
+- 3 habits in MongoDB (BOOLEAN, NUMBER, TEXT)
+- 8 habit logs in MongoDB
 
 This seed runs only when there are no users, habits, or logs yet.
 

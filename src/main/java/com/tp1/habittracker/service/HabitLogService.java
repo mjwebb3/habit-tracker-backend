@@ -22,11 +22,11 @@ public class HabitLogService {
     private final HabitRepository habitRepository;
 
     @SuppressWarnings("null")
-    public HabitLog addHabitLog(CreateHabitLogRequest request) {
+    public HabitLog addHabitLog(String authenticatedUserId, CreateHabitLogRequest request) {
+        String validatedUserId = Objects.requireNonNull(authenticatedUserId, "authenticated userId must not be null");
         Objects.requireNonNull(request, "request must not be null");
 
-        Habit habit = habitRepository.findById(request.habitId())
-                .orElseThrow(() -> new ResourceNotFoundException("Habit not found with id: " + request.habitId()));
+        Habit habit = getOwnedHabitOrThrow(validatedUserId, request.habitId());
 
         Object parsedValue = parseAndValidateValue(habit.getType(), request.value());
 
@@ -39,13 +39,15 @@ public class HabitLogService {
         return habitLogRepository.save(habitLog);
     }
 
-    public List<HabitLog> getLogsByHabit(String habitId) {
+    public List<HabitLog> getLogsByHabit(String authenticatedUserId, String habitId) {
+        String validatedUserId = Objects.requireNonNull(authenticatedUserId, "authenticated userId must not be null");
         String validatedHabitId = Objects.requireNonNull(habitId, "habitId must not be null");
-        ensureHabitExists(validatedHabitId);
+        getOwnedHabitOrThrow(validatedUserId, validatedHabitId);
         return habitLogRepository.findAllByHabitIdOrderByDateDesc(validatedHabitId);
     }
 
-    public List<HabitLog> getLogsByHabitAndDateRange(String habitId, LocalDate from, LocalDate to) {
+    public List<HabitLog> getLogsByHabitAndDateRange(String authenticatedUserId, String habitId, LocalDate from, LocalDate to) {
+        String validatedUserId = Objects.requireNonNull(authenticatedUserId, "authenticated userId must not be null");
         String validatedHabitId = Objects.requireNonNull(habitId, "habitId must not be null");
         Objects.requireNonNull(from, "from date must not be null");
         Objects.requireNonNull(to, "to date must not be null");
@@ -54,15 +56,19 @@ public class HabitLogService {
             throw new IllegalArgumentException("'from' date must be before or equal to 'to' date");
         }
 
-        ensureHabitExists(validatedHabitId);
+        getOwnedHabitOrThrow(validatedUserId, validatedHabitId);
         return habitLogRepository.findAllByHabitIdAndDateBetweenOrderByDateAsc(validatedHabitId, from, to);
     }
 
-    private void ensureHabitExists(String habitId) {
-        String validatedHabitId = Objects.requireNonNull(habitId, "habitId must not be null");
-        if (!habitRepository.existsById(validatedHabitId)) {
-            throw new ResourceNotFoundException("Habit not found with id: " + validatedHabitId);
+    private Habit getOwnedHabitOrThrow(String authenticatedUserId, String habitId) {
+        Habit habit = habitRepository.findById(habitId)
+                .orElseThrow(() -> new ResourceNotFoundException("Habit not found with id: " + habitId));
+
+        if (!habit.getUserId().equals(authenticatedUserId)) {
+            throw new ResourceNotFoundException("Habit not found with id: " + habitId);
         }
+
+        return habit;
     }
 
     private Object parseAndValidateValue(HabitType type, JsonNode valueNode) {

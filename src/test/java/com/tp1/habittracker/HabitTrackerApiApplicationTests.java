@@ -13,7 +13,12 @@ import com.tp1.habittracker.repository.UserRepository;
         "spring.autoconfigure.exclude=" +
             "org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration," +
             "org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration," +
-            "org.springframework.boot.autoconfigure.data.mongo.MongoRepositoriesAutoConfiguration"
+            "org.springframework.boot.autoconfigure.data.mongo.MongoRepositoriesAutoConfiguration," +
+            "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration," +
+            "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration," +
+            "org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration," +
+            "org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration," +
+            "org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration"
     }
 )
 class HabitTrackerApiApplicationTests {

@@ -12,6 +12,19 @@ services:
     volumes:
       - mongo_data:/data/db
 
+  postgres:
+    image: postgres:15
+    container_name: habit-tracker-postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: habit_tracker
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   mongo-express:
     image: mongo-express:1.0.2
     container_name: habit-tracker-mongo-express
@@ -32,8 +45,17 @@ services:
       - "8080:8080"
     environment:
       SPRING_DATA_MONGODB_URI: mongodb://root:rootpassword@mongo:27017/habitdb?authSource=admin
+
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/habit_tracker
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: Megustacantar1
+
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: true
     depends_on:
       - mongo
+      - postgres
 
 volumes:
   mongo_data:
+  postgres_data:
