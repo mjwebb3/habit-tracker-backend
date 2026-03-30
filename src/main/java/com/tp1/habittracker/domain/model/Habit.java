@@ -3,6 +3,7 @@ package com.tp1.habittracker.domain.model;
 import com.tp1.habittracker.domain.enums.Frequency;
 import com.tp1.habittracker.domain.enums.HabitType;
 import java.time.Instant;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -31,4 +32,7 @@ public class Habit {
     private Frequency frequency;
 
     private Instant createdAt;
+
+    // Internal embedding vector used internally by the service. Not exposed via DTOs.
+    private List<Double> embedding;
 }
