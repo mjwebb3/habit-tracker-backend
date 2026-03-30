@@ -64,6 +64,18 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
     }
 
+    @ExceptionHandler(UpstreamServiceUnavailableException.class)
+    public ResponseEntity<ApiErrorResponse> handleUpstreamUnavailable(UpstreamServiceUnavailableException ex) {
+        log.warn("Upstream service unavailable: {}", ex.getMessage());
+        return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(UpstreamBadResponseException.class)
+    public ResponseEntity<ApiErrorResponse> handleUpstreamBadResponse(UpstreamBadResponseException ex) {
+        log.warn("Upstream bad response: {}", ex.getMessage());
+        return buildResponse(HttpStatus.BAD_GATEWAY, ex.getMessage(), null);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleGeneric(Exception ex) {
         log.error("Unhandled exception", ex);
