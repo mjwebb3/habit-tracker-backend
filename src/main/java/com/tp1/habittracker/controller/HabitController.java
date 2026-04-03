@@ -1,13 +1,16 @@
 package com.tp1.habittracker.controller;
 
 import com.tp1.habittracker.domain.model.Habit;
+import com.tp1.habittracker.dto.habit.CheckSimilarityRequest;
 import com.tp1.habittracker.dto.habit.CreateHabitRequest;
 import com.tp1.habittracker.dto.habit.HabitResponse;
 import com.tp1.habittracker.dto.habit.UpdateHabitRequest;
 import com.tp1.habittracker.exception.ResourceNotFoundException;
+import com.tp1.habittracker.service.HabitSimilarityService;
 import com.tp1.habittracker.service.HabitService;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.http.HttpStatus;
@@ -27,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class HabitController {
 
     private final HabitService habitService;
+    private final HabitSimilarityService habitSimilarityService;
 
     @PostMapping
     public ResponseEntity<HabitResponse> createHabit(
@@ -70,6 +74,18 @@ public class HabitController {
     ) {
         Habit updatedHabit = habitService.updateHabit(extractAuthenticatedUserId(authentication), habitId, request);
         return toResponse(updatedHabit);
+    }
+
+    @PostMapping("/check-similarity")
+    public ResponseEntity<?> checkSimilarity(@Valid @RequestBody CheckSimilarityRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Similarity request is required");
+        }
+
+        return habitSimilarityService.findMostSimilarHabit(request.name())
+                .<ResponseEntity<?>>map(habit -> ResponseEntity.ok(toResponse(habit)))
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("message", "No similar habit exists")));
     }
 
     @DeleteMapping("/{id}")

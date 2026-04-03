@@ -23,4 +23,17 @@ public class WebClientConfig {
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .build();
     }
+
+    @Bean
+    @Qualifier("ollamaWebClient")
+    public WebClient ollamaWebClient(OllamaProperties properties) {
+        HttpClient httpClient = HttpClient.create()
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, Math.toIntExact(properties.getConnectTimeoutMs()))
+                .responseTimeout(Duration.ofMillis(properties.getReadTimeoutMs()));
+
+        return WebClient.builder()
+                .baseUrl(properties.getBaseUrl())
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .build();
+    }
 }

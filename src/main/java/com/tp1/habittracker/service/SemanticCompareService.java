@@ -7,7 +7,6 @@ import com.tp1.habittracker.exception.UpstreamBadResponseException;
 import com.tp1.habittracker.exception.UpstreamServiceUnavailableException;
 import java.time.Duration;
 import java.util.Objects;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
@@ -19,13 +18,17 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import reactor.core.Exceptions;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class SemanticCompareService {
 
-    @Qualifier("semanticCompareWebClient")
     private final WebClient webClient;
     private final SemanticCompareProperties properties;
+
+    public SemanticCompareService(@Qualifier("semanticCompareWebClient") WebClient webClient,
+                                  SemanticCompareProperties properties) {
+        this.webClient = webClient;
+        this.properties = properties;
+    }
 
     public SemanticCompareResponse compareTexts(SemanticCompareRequest request) {
         Objects.requireNonNull(request, "request must not be null");

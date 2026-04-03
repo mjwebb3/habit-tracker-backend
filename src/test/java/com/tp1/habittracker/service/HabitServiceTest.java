@@ -2,20 +2,27 @@ package com.tp1.habittracker.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.tp1.habittracker.domain.enums.HabitType;
 import com.tp1.habittracker.domain.enums.Frequency;
 import com.tp1.habittracker.domain.model.Habit;
+import com.tp1.habittracker.dto.habit.CreateHabitRequest;
 import com.tp1.habittracker.exception.ResourceNotFoundException;
 import com.tp1.habittracker.repository.HabitLogDateView;
 import com.tp1.habittracker.repository.HabitLogRepository;
 import com.tp1.habittracker.repository.HabitRepository;
 import com.tp1.habittracker.repository.UserRepository;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,12 +40,15 @@ class HabitServiceTest {
 
     @Mock
     private HabitLogRepository habitLogRepository;
+    @Mock
+    private OllamaClient ollamaClient;
+
 
     private HabitService habitService;
 
     @BeforeEach
     void setUp() {
-        habitService = new HabitService(habitRepository, userRepository, habitLogRepository);
+        habitService = new HabitService(habitRepository, userRepository, habitLogRepository, ollamaClient);
     }
 
     @Test
@@ -115,6 +125,40 @@ class HabitServiceTest {
         when(habitRepository.findById("missing-habit")).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> habitService.calculateCurrentStreak("user-1", "missing-habit"));
+    }
+
+    @Test
+    void createHabitGeneratesEmbeddingOnceAndPersistsIt() {
+        String userId = UUID.randomUUID().toString();
+        CreateHabitRequest request = new CreateHabitRequest(userId, "Drink water", HabitType.BOOLEAN, Frequency.DAILY);
+        List<Double> embedding = List.of(0.12, 0.34, 0.56);
+
+        when(userRepository.existsById(UUID.fromString(userId))).thenReturn(true);
+        when(ollamaClient.generateEmbedding("Drink water")).thenReturn(embedding);
+        when(habitRepository.save(any(Habit.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Habit created = habitService.createHabit(userId, request);
+
+        verify(ollamaClient, times(1)).generateEmbedding(eq("Drink water"));
+        verify(habitRepository, times(1)).save(any(Habit.class));
+        assertEquals(embedding, created.getEmbedding());
+    }
+
+    @Test
+    void createHabitTrimsNameBeforeGeneratingEmbedding() {
+        String userId = UUID.randomUUID().toString();
+        CreateHabitRequest request = new CreateHabitRequest(userId, "  Read pages  ", HabitType.NUMBER, Frequency.DAILY);
+        List<Double> embedding = new ArrayList<>(List.of(0.9, 0.1));
+
+        when(userRepository.existsById(UUID.fromString(userId))).thenReturn(true);
+        when(ollamaClient.generateEmbedding("Read pages")).thenReturn(embedding);
+        when(habitRepository.save(any(Habit.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Habit created = habitService.createHabit(userId, request);
+
+        verify(ollamaClient, times(1)).generateEmbedding(eq("Read pages"));
+        assertEquals("Read pages", created.getName());
+        assertEquals(embedding, created.getEmbedding());
     }
 
     private HabitLogDateView dateView(LocalDate date) {

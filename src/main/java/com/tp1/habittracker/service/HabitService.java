@@ -28,6 +28,7 @@ public class HabitService {
     private final HabitRepository habitRepository;
     private final UserRepository userRepository;
     private final HabitLogRepository habitLogRepository;
+    private final OllamaClient ollamaClient;
 
     @SuppressWarnings("null")
     public Habit createHabit(String authenticatedUserId, CreateHabitRequest request) {
@@ -39,12 +40,15 @@ public class HabitService {
             throw new ResourceNotFoundException("User not found with id: " + userId);
         }
 
+        List<Double> embedding = ollamaClient.generateEmbedding(normalizedName);
+
         Habit habit = Habit.builder()
                 .userId(userId)
                 .name(normalizedName)
                 .type(request.type())
                 .frequency(request.frequency())
                 .createdAt(Instant.now())
+                .embedding(embedding)
                 .build();
 
         return habitRepository.save(habit);
@@ -67,9 +71,14 @@ public class HabitService {
 
         Habit existingHabit = getOwnedHabitOrThrow(validatedUserId, validatedHabitId);
 
-        existingHabit.setName(request.name().trim());
+        String updatedName = request.name().trim();
+        existingHabit.setName(updatedName);
         existingHabit.setType(request.type());
         existingHabit.setFrequency(request.frequency());
+
+        // Regenerate embedding if name changed
+        List<Double> embedding = ollamaClient.generateEmbedding(updatedName);
+        existingHabit.setEmbedding(embedding);
 
         return habitRepository.save(existingHabit);
     }

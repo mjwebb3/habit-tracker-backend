@@ -3,6 +3,7 @@ package com.tp1.habittracker.domain.model;
 import com.tp1.habittracker.domain.enums.Frequency;
 import com.tp1.habittracker.domain.enums.HabitType;
 import java.time.Instant;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -31,4 +32,6 @@ public class Habit {
     private Frequency frequency;
 
     private Instant createdAt;
+
+    private List<Double> embedding;
 }

@@ -8,6 +8,7 @@ import com.tp1.habittracker.domain.model.User;
 import com.tp1.habittracker.repository.HabitLogRepository;
 import com.tp1.habittracker.repository.HabitRepository;
 import com.tp1.habittracker.repository.UserRepository;
+import com.tp1.habittracker.service.OllamaClient;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -29,6 +30,7 @@ public class StartupDataSeeder implements CommandLineRunner {
     private final UserRepository userRepository;
     private final HabitRepository habitRepository;
     private final HabitLogRepository habitLogRepository;
+    private final OllamaClient ollamaClient;
 
     @Override
     public void run(String... args) {
@@ -54,6 +56,7 @@ public class StartupDataSeeder implements CommandLineRunner {
                 .type(HabitType.BOOLEAN)
                 .frequency(Frequency.DAILY)
                 .createdAt(Instant.now().minus(7, ChronoUnit.DAYS))
+                .embedding(ollamaClient.generateEmbedding("Drink 2L water"))
                 .build());
 
         Habit readingHabit = habitRepository.save(Habit.builder()
@@ -62,6 +65,7 @@ public class StartupDataSeeder implements CommandLineRunner {
                 .type(HabitType.NUMBER)
                 .frequency(Frequency.DAILY)
                 .createdAt(Instant.now().minus(5, ChronoUnit.DAYS))
+                .embedding(ollamaClient.generateEmbedding("Read pages"))
                 .build());
 
         Habit planningHabit = habitRepository.save(Habit.builder()
@@ -70,6 +74,7 @@ public class StartupDataSeeder implements CommandLineRunner {
                 .type(HabitType.TEXT)
                 .frequency(Frequency.WEEKLY)
                 .createdAt(Instant.now().minus(14, ChronoUnit.DAYS))
+                .embedding(ollamaClient.generateEmbedding("Weekly planning"))
                 .build());
 
                 if (hydrationHabit == null || readingHabit == null || planningHabit == null) {
