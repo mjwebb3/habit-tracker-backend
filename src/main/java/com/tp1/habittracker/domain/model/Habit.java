@@ -25,6 +25,8 @@ public class Habit {
     @Indexed
     private String userId;
 
+    private boolean isDefault;
+
     private String name;
 
     private HabitType type;

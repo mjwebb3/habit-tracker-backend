@@ -27,7 +27,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ApiErrorResponse> handleDuplicate(DuplicateResourceException ex) {
         log.warn("Duplicate resource: {}", ex.getMessage());
-        return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), null);
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), ex.getDetails());
     }
 
     @ExceptionHandler(DuplicateKeyException.class)
@@ -39,7 +39,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
         log.warn("Validation failed: {}", ex.getMessage());
-        Map<String, String> details = new HashMap<>();
+        Map<String, Object> details = new HashMap<>();
         for (FieldError error : ex.getBindingResult().getFieldErrors()) {
             details.put(error.getField(), error.getDefaultMessage());
         }
@@ -82,7 +82,7 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected server error", null);
     }
 
-    private ResponseEntity<ApiErrorResponse> buildResponse(HttpStatus status, String message, Map<String, String> details) {
+    private ResponseEntity<ApiErrorResponse> buildResponse(HttpStatus status, String message, Map<String, Object> details) {
         ApiErrorResponse body = new ApiErrorResponse(
                 Instant.now(),
                 status.value(),

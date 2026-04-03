@@ -5,6 +5,7 @@ import com.tp1.habittracker.domain.model.Habit;
 import com.tp1.habittracker.repository.HabitRepository;
 import com.tp1.habittracker.util.SimilarityUtils;
 import java.util.List;
+import java.util.Comparator;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -32,43 +33,40 @@ public class HabitSimilarityService {
             return Optional.empty();
         }
 
-        // Generate embedding for the new habit name
         List<Double> newHabitEmbedding = ollamaClient.generateEmbedding(newHabitName);
+        return findBestMatch(newHabitEmbedding, habitRepository.findAll())
+                .map(HabitSimilarityMatch::habit);
+    }
 
-        // Retrieve all habits
-        List<Habit> allHabits = habitRepository.findAll();
+    public Optional<HabitSimilarityMatch> findMostSimilarHabitForUserOrDefault(
+            String userId,
+            List<Double> newHabitEmbedding
+    ) {
+        Objects.requireNonNull(userId, "userId must not be null");
+        Objects.requireNonNull(newHabitEmbedding, "newHabitEmbedding must not be null");
 
-        double highestSimilarity = -1.0;
-        Habit mostSimilarHabit = null;
+        List<Habit> candidates = habitRepository.findAllByUserIdOrIsDefaultTrue(userId);
+        return findBestMatch(newHabitEmbedding, candidates);
+    }
 
-        // Find the habit with the highest similarity
-        for (Habit habit : allHabits) {
-            // Skip habits with null or empty embeddings
-            if (habit.getEmbedding() == null || habit.getEmbedding().isEmpty()) {
-                continue;
-            }
+    private Optional<HabitSimilarityMatch> findBestMatch(List<Double> newHabitEmbedding, List<Habit> candidates) {
+        return candidates.stream()
+                .filter(habit -> habit.getEmbedding() != null && !habit.getEmbedding().isEmpty())
+                .map(habit -> computeSimilarity(newHabitEmbedding, habit))
+                .flatMap(Optional::stream)
+                .filter(match -> match.score() >= properties.getSimilarityThreshold())
+                .max(Comparator.comparingDouble(HabitSimilarityMatch::score));
+    }
 
-            try {
-                double similarity = SimilarityUtils.cosineSimilarity(
-                        newHabitEmbedding,
-                        habit.getEmbedding()
-                );
-
-                if (similarity > highestSimilarity) {
-                    highestSimilarity = similarity;
-                    mostSimilarHabit = habit;
-                }
-            } catch (IllegalArgumentException ex) {
-                // Skip habits that cause similarity computation errors
-                continue;
-            }
+    private Optional<HabitSimilarityMatch> computeSimilarity(List<Double> newHabitEmbedding, Habit candidate) {
+        try {
+            double similarity = SimilarityUtils.cosineSimilarity(newHabitEmbedding, candidate.getEmbedding());
+            return Optional.of(new HabitSimilarityMatch(candidate, similarity));
+        } catch (IllegalArgumentException ex) {
+            return Optional.empty();
         }
+    }
 
-        // Return the habit only if similarity meets the threshold
-        if (highestSimilarity >= properties.getSimilarityThreshold()) {
-            return Optional.ofNullable(mostSimilarHabit);
-        }
-
-        return Optional.empty();
+    public record HabitSimilarityMatch(Habit habit, double score) {
     }
 }

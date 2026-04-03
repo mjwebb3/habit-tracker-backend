@@ -34,6 +34,8 @@ public class StartupDataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+                ensureDefaultHabits();
+
         if (hasExistingData()) {
             LOGGER.info("Skipping startup seed because data already exists.");
             return;
@@ -52,6 +54,7 @@ public class StartupDataSeeder implements CommandLineRunner {
 
         Habit hydrationHabit = habitRepository.save(Habit.builder()
                 .userId(user.getId().toString())
+                .isDefault(false)
                 .name("Drink 2L water")
                 .type(HabitType.BOOLEAN)
                 .frequency(Frequency.DAILY)
@@ -61,6 +64,7 @@ public class StartupDataSeeder implements CommandLineRunner {
 
         Habit readingHabit = habitRepository.save(Habit.builder()
                 .userId(user.getId().toString())
+                .isDefault(false)
                 .name("Read pages")
                 .type(HabitType.NUMBER)
                 .frequency(Frequency.DAILY)
@@ -70,6 +74,7 @@ public class StartupDataSeeder implements CommandLineRunner {
 
         Habit planningHabit = habitRepository.save(Habit.builder()
                 .userId(user.getId().toString())
+                .isDefault(false)
                 .name("Weekly planning")
                 .type(HabitType.TEXT)
                 .frequency(Frequency.WEEKLY)
@@ -97,7 +102,29 @@ public class StartupDataSeeder implements CommandLineRunner {
         LOGGER.info("Startup seed inserted: 1 user, 3 habits, 8 habit logs.");
     }
 
+        private void ensureDefaultHabits() {
+                seedDefaultHabit("Drink 2L water", HabitType.BOOLEAN, Frequency.DAILY, 7);
+                seedDefaultHabit("Read pages", HabitType.NUMBER, Frequency.DAILY, 5);
+                seedDefaultHabit("Weekly planning", HabitType.TEXT, Frequency.WEEKLY, 14);
+        }
+
+        private void seedDefaultHabit(String name, HabitType type, Frequency frequency, long daysAgo) {
+                if (habitRepository.existsByNameAndIsDefaultTrue(name)) {
+                        return;
+                }
+
+                habitRepository.save(Habit.builder()
+                                .userId(null)
+                                .isDefault(true)
+                                .name(name)
+                                .type(type)
+                                .frequency(frequency)
+                                .createdAt(Instant.now().minus(daysAgo, ChronoUnit.DAYS))
+                                .embedding(ollamaClient.generateEmbedding(name))
+                                .build());
+        }
+
     private boolean hasExistingData() {
-        return userRepository.count() > 0 || habitRepository.count() > 0 || habitLogRepository.count() > 0;
+                return userRepository.count() > 0 || habitLogRepository.count() > 0;
     }
 }

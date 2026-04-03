@@ -7,6 +7,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import com.tp1.habittracker.repository.HabitLogRepository;
 import com.tp1.habittracker.repository.HabitRepository;
 import com.tp1.habittracker.repository.UserRepository;
+import com.tp1.habittracker.service.OllamaClient;
 
 @SpringBootTest(
     properties = {
@@ -31,6 +32,9 @@ class HabitTrackerApiApplicationTests {
 
     @MockBean
     private HabitLogRepository habitLogRepository;
+
+    @MockBean
+    private OllamaClient ollamaClient;
 
     @Test
     void contextLoads() {

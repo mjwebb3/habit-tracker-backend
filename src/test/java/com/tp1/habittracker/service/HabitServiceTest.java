@@ -13,6 +13,7 @@ import com.tp1.habittracker.domain.enums.HabitType;
 import com.tp1.habittracker.domain.enums.Frequency;
 import com.tp1.habittracker.domain.model.Habit;
 import com.tp1.habittracker.dto.habit.CreateHabitRequest;
+import com.tp1.habittracker.exception.DuplicateResourceException;
 import com.tp1.habittracker.exception.ResourceNotFoundException;
 import com.tp1.habittracker.repository.HabitLogDateView;
 import com.tp1.habittracker.repository.HabitLogRepository;
@@ -43,12 +44,21 @@ class HabitServiceTest {
     @Mock
     private OllamaClient ollamaClient;
 
+    @Mock
+    private HabitSimilarityService habitSimilarityService;
+
 
     private HabitService habitService;
 
     @BeforeEach
     void setUp() {
-        habitService = new HabitService(habitRepository, userRepository, habitLogRepository, ollamaClient);
+        habitService = new HabitService(
+            habitRepository,
+            userRepository,
+            habitLogRepository,
+            ollamaClient,
+            habitSimilarityService
+        );
     }
 
     @Test
@@ -135,6 +145,7 @@ class HabitServiceTest {
 
         when(userRepository.existsById(UUID.fromString(userId))).thenReturn(true);
         when(ollamaClient.generateEmbedding("Drink water")).thenReturn(embedding);
+        when(habitSimilarityService.findMostSimilarHabitForUserOrDefault(userId, embedding)).thenReturn(Optional.empty());
         when(habitRepository.save(any(Habit.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Habit created = habitService.createHabit(userId, request);
@@ -152,6 +163,7 @@ class HabitServiceTest {
 
         when(userRepository.existsById(UUID.fromString(userId))).thenReturn(true);
         when(ollamaClient.generateEmbedding("Read pages")).thenReturn(embedding);
+        when(habitSimilarityService.findMostSimilarHabitForUserOrDefault(userId, embedding)).thenReturn(Optional.empty());
         when(habitRepository.save(any(Habit.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Habit created = habitService.createHabit(userId, request);
@@ -160,6 +172,52 @@ class HabitServiceTest {
         assertEquals("Read pages", created.getName());
         assertEquals(embedding, created.getEmbedding());
     }
+
+        @Test
+        void createHabitThrowsWhenSimilarUserHabitExists() {
+        String userId = UUID.randomUUID().toString();
+        CreateHabitRequest request = new CreateHabitRequest(userId, "Hydration", HabitType.BOOLEAN, Frequency.DAILY);
+        List<Double> embedding = List.of(0.5, 0.5, 0.1);
+
+        Habit similarHabit = Habit.builder()
+            .id("habit-existing")
+            .userId(userId)
+            .name("Drink water")
+            .type(HabitType.BOOLEAN)
+            .frequency(Frequency.DAILY)
+            .isDefault(false)
+            .build();
+
+        when(userRepository.existsById(UUID.fromString(userId))).thenReturn(true);
+        when(ollamaClient.generateEmbedding("Hydration")).thenReturn(embedding);
+        when(habitSimilarityService.findMostSimilarHabitForUserOrDefault(userId, embedding))
+            .thenReturn(Optional.of(new HabitSimilarityService.HabitSimilarityMatch(similarHabit, 0.93)));
+
+        assertThrows(DuplicateResourceException.class, () -> habitService.createHabit(userId, request));
+        }
+
+        @Test
+        void createHabitThrowsWhenSimilarDefaultHabitExists() {
+        String userId = UUID.randomUUID().toString();
+        CreateHabitRequest request = new CreateHabitRequest(userId, "Read 20 pages", HabitType.NUMBER, Frequency.DAILY);
+        List<Double> embedding = List.of(0.3, 0.2, 0.8);
+
+        Habit defaultHabit = Habit.builder()
+            .id("default-1")
+            .userId(null)
+            .name("Read pages")
+            .type(HabitType.NUMBER)
+            .frequency(Frequency.DAILY)
+            .isDefault(true)
+            .build();
+
+        when(userRepository.existsById(UUID.fromString(userId))).thenReturn(true);
+        when(ollamaClient.generateEmbedding("Read 20 pages")).thenReturn(embedding);
+        when(habitSimilarityService.findMostSimilarHabitForUserOrDefault(userId, embedding))
+            .thenReturn(Optional.of(new HabitSimilarityService.HabitSimilarityMatch(defaultHabit, 0.9)));
+
+        assertThrows(DuplicateResourceException.class, () -> habitService.createHabit(userId, request));
+        }
 
     private HabitLogDateView dateView(LocalDate date) {
         return new HabitLogDateView() {

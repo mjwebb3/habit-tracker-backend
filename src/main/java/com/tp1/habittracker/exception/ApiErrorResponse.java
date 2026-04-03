@@ -8,6 +8,6 @@ public record ApiErrorResponse(
         int status,
         String error,
         String message,
-        Map<String, String> details
+        Map<String, Object> details
 ) {
 }

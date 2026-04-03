@@ -2,9 +2,9 @@ package com.tp1.habittracker.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.isA;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.tp1.habittracker.config.HabitSimilarityProperties;
@@ -263,4 +263,53 @@ class HabitSimilarityServiceTest {
 
         assertTrue(result.isEmpty());
     }
+
+        @Test
+        void findMostSimilarHabitForUserOrDefaultIncludesDefaultsAndUserHabits() {
+        List<Double> queryEmbedding = List.of(1.0, 0.0, 0.0);
+
+        Habit userHabit = Habit.builder()
+            .id("habit-user")
+            .userId("user-1")
+            .name("Drink water")
+            .embedding(List.of(1.0, 0.0, 0.0))
+            .build();
+
+        Habit defaultHabit = Habit.builder()
+            .id("habit-default")
+            .userId(null)
+            .isDefault(true)
+            .name("Hydration")
+            .embedding(List.of(0.7, 0.7, 0.0))
+            .build();
+
+        when(habitRepository.findAllByUserIdOrIsDefaultTrue("user-1")).thenReturn(List.of(userHabit, defaultHabit));
+
+        Optional<HabitSimilarityService.HabitSimilarityMatch> result =
+            service.findMostSimilarHabitForUserOrDefault("user-1", queryEmbedding);
+
+        assertTrue(result.isPresent());
+        assertEquals("habit-user", result.get().habit().getId());
+        assertTrue(result.get().score() >= 0.8);
+        verify(habitRepository).findAllByUserIdOrIsDefaultTrue("user-1");
+        }
+
+        @Test
+        void findMostSimilarHabitForUserOrDefaultReturnsEmptyWhenNoCandidateReachesThreshold() {
+        List<Double> queryEmbedding = List.of(1.0, 0.0, 0.0);
+
+        Habit lowSimilarityCandidate = Habit.builder()
+            .id("habit-low")
+            .userId("user-1")
+            .name("Do yoga")
+            .embedding(List.of(0.1, 0.95, 0.0))
+            .build();
+
+        when(habitRepository.findAllByUserIdOrIsDefaultTrue("user-1")).thenReturn(List.of(lowSimilarityCandidate));
+
+        Optional<HabitSimilarityService.HabitSimilarityMatch> result =
+            service.findMostSimilarHabitForUserOrDefault("user-1", queryEmbedding);
+
+        assertFalse(result.isPresent());
+        }
 }

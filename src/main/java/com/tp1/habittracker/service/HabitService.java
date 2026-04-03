@@ -3,6 +3,7 @@ package com.tp1.habittracker.service;
 import com.tp1.habittracker.domain.model.Habit;
 import com.tp1.habittracker.dto.habit.CreateHabitRequest;
 import com.tp1.habittracker.dto.habit.UpdateHabitRequest;
+import com.tp1.habittracker.exception.DuplicateResourceException;
 import com.tp1.habittracker.exception.ResourceNotFoundException;
 import com.tp1.habittracker.repository.HabitLogDateView;
 import com.tp1.habittracker.repository.HabitLogRepository;
@@ -14,8 +15,10 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -34,6 +37,7 @@ public class HabitService {
     private final UserRepository userRepository;
     private final HabitLogRepository habitLogRepository;
     private final OllamaClient ollamaClient;
+    private final HabitSimilarityService habitSimilarityService;
 
     @SuppressWarnings("null")
     public Habit createHabit(String authenticatedUserId, CreateHabitRequest request) {
@@ -47,8 +51,31 @@ public class HabitService {
 
         List<Double> embedding = ollamaClient.generateEmbedding(normalizedName);
 
+        habitSimilarityService.findMostSimilarHabitForUserOrDefault(userId, embedding)
+            .ifPresent(match -> {
+                Habit similarHabit = match.habit();
+                Map<String, Object> similarHabitDetails = new HashMap<>();
+                similarHabitDetails.put("id", similarHabit.getId());
+                similarHabitDetails.put("userId", similarHabit.getUserId());
+                similarHabitDetails.put("name", similarHabit.getName());
+                similarHabitDetails.put("type", similarHabit.getType());
+                similarHabitDetails.put("frequency", similarHabit.getFrequency());
+                similarHabitDetails.put("createdAt", similarHabit.getCreatedAt());
+                similarHabitDetails.put("isDefault", similarHabit.isDefault());
+
+                Map<String, Object> details = new HashMap<>();
+                details.put("similarityScore", match.score());
+                details.put("similarHabit", similarHabitDetails);
+
+                throw new DuplicateResourceException(
+                    "Similar habit found: " + similarHabit.getName(),
+                    details
+                );
+            });
+
         Habit habit = Habit.builder()
                 .userId(userId)
+            .isDefault(false)
                 .name(normalizedName)
                 .type(request.type())
                 .frequency(request.frequency())
@@ -263,7 +290,7 @@ public class HabitService {
         Habit habit = habitRepository.findById(habitId)
                 .orElseThrow(() -> new ResourceNotFoundException("Habit not found with id: " + habitId));
 
-        if (!habit.getUserId().equals(authenticatedUserId)) {
+        if (!Objects.equals(habit.getUserId(), authenticatedUserId)) {
             throw new ResourceNotFoundException("Habit not found with id: " + habitId);
         }
 
