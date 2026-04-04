@@ -21,7 +21,6 @@ public class HabitLogService {
     private final HabitLogRepository habitLogRepository;
     private final HabitRepository habitRepository;
 
-    @SuppressWarnings("null")
     public HabitLog addHabitLog(String authenticatedUserId, CreateHabitLogRequest request) {
         String validatedUserId = Objects.requireNonNull(authenticatedUserId, "authenticated userId must not be null");
         Objects.requireNonNull(request, "request must not be null");

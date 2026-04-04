@@ -71,7 +71,7 @@ public class StartupDataSeeder implements CommandLineRunner {
                 .createdAt(Instant.now().minus(5, ChronoUnit.DAYS))
                 .embedding(ollamaClient.generateEmbedding("Read pages"))
                 .build());
-
+                
         Habit planningHabit = habitRepository.save(Habit.builder()
                 .userId(user.getId().toString())
                 .isDefault(false)
@@ -88,7 +88,7 @@ public class StartupDataSeeder implements CommandLineRunner {
                 }
 
         LocalDate today = LocalDate.now();
-        habitLogRepository.saveAll(List.of(
+        List<HabitLog> habitLogs = List.of(
                 HabitLog.builder().habitId(hydrationHabit.getId()).date(today.minusDays(2)).value(true).build(),
                 HabitLog.builder().habitId(hydrationHabit.getId()).date(today.minusDays(1)).value(true).build(),
                 HabitLog.builder().habitId(hydrationHabit.getId()).date(today).value(true).build(),
@@ -97,7 +97,8 @@ public class StartupDataSeeder implements CommandLineRunner {
                 HabitLog.builder().habitId(readingHabit.getId()).date(today).value(30.0).build(),
                 HabitLog.builder().habitId(planningHabit.getId()).date(today.minusDays(7)).value("Planned top 3 priorities").build(),
                 HabitLog.builder().habitId(planningHabit.getId()).date(today).value("Reviewed and planned next week").build()
-        ));
+        );
+        habitLogRepository.saveAll(habitLogs);
 
         LOGGER.info("Startup seed inserted: 1 user, 3 habits, 8 habit logs.");
     }

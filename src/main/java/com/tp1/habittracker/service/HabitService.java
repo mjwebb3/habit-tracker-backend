@@ -39,7 +39,6 @@ public class HabitService {
     private final OllamaClient ollamaClient;
     private final HabitSimilarityService habitSimilarityService;
 
-    @SuppressWarnings("null")
     public Habit createHabit(String authenticatedUserId, CreateHabitRequest request) {
         Objects.requireNonNull(request, "request must not be null");
         String userId = Objects.requireNonNull(authenticatedUserId, "authenticated userId must not be null");

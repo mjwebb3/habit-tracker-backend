@@ -9,6 +9,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +20,6 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @SuppressWarnings("null")
     public User createUser(CreateUserRequest request) {
         Objects.requireNonNull(request, "request must not be null");
         String normalizedUsername = normalize(request.username());

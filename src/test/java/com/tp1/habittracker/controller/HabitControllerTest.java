@@ -34,6 +34,7 @@ class HabitControllerTest {
         controller = new HabitController(habitService, habitSimilarityService);
     }
 
+    @SuppressWarnings("null")
     @Test
     void checkSimilarityReturnsHabitWhenFound() {
         Habit habit = Habit.builder()
