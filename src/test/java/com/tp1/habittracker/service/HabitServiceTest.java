@@ -173,6 +173,23 @@ class HabitServiceTest {
         assertEquals(embedding, created.getEmbedding());
     }
 
+    @Test
+    void getDefaultHabitsReturnsOnlyDefaultHabits() {
+        Habit defaultHabit = Habit.builder()
+                .id("default-1")
+                .name("Drink water")
+                .isDefault(true)
+                .build();
+
+        when(habitRepository.findAllByIsDefaultTrueOrderByCreatedAtDesc()).thenReturn(List.of(defaultHabit));
+
+        List<Habit> habits = habitService.getDefaultHabits();
+
+        assertEquals(1, habits.size());
+        assertEquals("default-1", habits.get(0).getId());
+        verify(habitRepository, times(1)).findAllByIsDefaultTrueOrderByCreatedAtDesc();
+    }
+
         @Test
         void createHabitThrowsWhenSimilarUserHabitExists() {
         String userId = UUID.randomUUID().toString();

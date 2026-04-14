@@ -8,6 +8,8 @@ public interface HabitRepository extends MongoRepository<Habit, String> {
 
     List<Habit> findAllByUserIdOrderByCreatedAtDesc(String userId);
 
+    List<Habit> findAllByIsDefaultTrueOrderByCreatedAtDesc();
+
     List<Habit> findAllByUserIdOrIsDefaultTrue(String userId);
 
     boolean existsByNameAndIsDefaultTrue(String name);

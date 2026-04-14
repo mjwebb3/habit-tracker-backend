@@ -14,6 +14,7 @@ import com.tp1.habittracker.dto.habit.HabitResponse;
 import com.tp1.habittracker.service.HabitService;
 import com.tp1.habittracker.service.HabitSimilarityService;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -77,5 +78,26 @@ class HabitControllerTest {
         );
 
         assertEquals("Similarity request is required", exception.getMessage());
+    }
+
+    @Test
+    void getDefaultHabitsReturnsDefaultHabits() {
+        Habit habit = Habit.builder()
+                .id("habit-default")
+                .userId(null)
+                .name("Drink water")
+                .type(HabitType.BOOLEAN)
+                .frequency(Frequency.DAILY)
+                .isDefault(true)
+                .createdAt(Instant.now())
+                .build();
+
+        when(habitService.getDefaultHabits()).thenReturn(List.of(habit));
+
+        List<HabitResponse> response = controller.getDefaultHabits();
+
+        assertEquals(1, response.size());
+        assertEquals("habit-default", response.get(0).id());
+        assertTrue(response.get(0).name().equals("Drink water"));
     }
 }

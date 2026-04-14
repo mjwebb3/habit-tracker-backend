@@ -99,6 +99,10 @@ public class HabitService {
         return habitRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
     }
 
+    public List<Habit> getDefaultHabits() {
+        return habitRepository.findAllByIsDefaultTrueOrderByCreatedAtDesc();
+    }
+
     public Habit updateHabit(String authenticatedUserId, String habitId, UpdateHabitRequest request) {
         Objects.requireNonNull(request, "request must not be null");
         String validatedUserId = Objects.requireNonNull(authenticatedUserId, "authenticated userId must not be null");

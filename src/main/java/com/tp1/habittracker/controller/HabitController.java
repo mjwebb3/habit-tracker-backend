@@ -62,6 +62,14 @@ public class HabitController {
                 .toList();
     }
 
+    @GetMapping("/defaults")
+    public List<HabitResponse> getDefaultHabits() {
+        return habitService.getDefaultHabits()
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     @GetMapping("/{habitId}/streak")
     public ResponseEntity<Integer> getCurrentStreak(@PathVariable String habitId, Authentication authentication) {
         int streak = habitService.calculateCurrentStreak(extractAuthenticatedUserId(authentication), habitId);
