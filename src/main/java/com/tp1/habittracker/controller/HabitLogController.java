@@ -12,6 +12,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -49,6 +50,26 @@ public class HabitLogController {
                 : habitLogService.getLogsByHabit(authenticatedUserId, habitId);
 
         return logs.stream().map(this::toResponse).toList();
+    }
+
+    @DeleteMapping("/habit/{habitId}")
+    public ResponseEntity<Void> deleteLogsByHabitAndDateRange(
+            Authentication authentication,
+            @PathVariable String habitId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
+    ) {
+        habitLogService.removeLogsByHabitAndDateRange(extractAuthenticatedUserId(authentication), habitId, from, to);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{logId}")
+    public ResponseEntity<Void> deleteLogById(
+            Authentication authentication,
+            @PathVariable String logId
+    ) {
+        habitLogService.removeLogById(extractAuthenticatedUserId(authentication), logId);
+        return ResponseEntity.noContent().build();
     }
 
     private String extractAuthenticatedUserId(Authentication authentication) {

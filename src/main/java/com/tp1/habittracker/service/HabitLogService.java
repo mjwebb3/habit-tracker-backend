@@ -5,6 +5,7 @@ import com.tp1.habittracker.domain.enums.HabitType;
 import com.tp1.habittracker.domain.model.Habit;
 import com.tp1.habittracker.domain.model.HabitLog;
 import com.tp1.habittracker.dto.log.CreateHabitLogRequest;
+import com.tp1.habittracker.exception.DuplicateResourceException;
 import com.tp1.habittracker.exception.ResourceNotFoundException;
 import com.tp1.habittracker.repository.HabitLogRepository;
 import com.tp1.habittracker.repository.HabitRepository;
@@ -26,6 +27,10 @@ public class HabitLogService {
         Objects.requireNonNull(request, "request must not be null");
 
         Habit habit = getOwnedHabitOrThrow(validatedUserId, request.habitId());
+
+        if (habitLogRepository.existsByHabitIdAndDate(habit.getId(), request.date())) {
+            throw new DuplicateResourceException("Habit already completed for this date", null);
+        }
 
         Object parsedValue = parseAndValidateValue(habit.getType(), request.value());
 
@@ -57,6 +62,31 @@ public class HabitLogService {
 
         getOwnedHabitOrThrow(validatedUserId, validatedHabitId);
         return habitLogRepository.findAllByHabitIdAndDateBetweenOrderByDateAsc(validatedHabitId, from, to);
+    }
+
+    public void removeLogsByHabitAndDateRange(String authenticatedUserId, String habitId, LocalDate from, LocalDate to) {
+        String validatedUserId = Objects.requireNonNull(authenticatedUserId, "authenticated userId must not be null");
+        String validatedHabitId = Objects.requireNonNull(habitId, "habitId must not be null");
+        Objects.requireNonNull(from, "from date must not be null");
+        Objects.requireNonNull(to, "to date must not be null");
+
+        if (from.isAfter(to)) {
+            throw new IllegalArgumentException("'from' date must be before or equal to 'to' date");
+        }
+
+        getOwnedHabitOrThrow(validatedUserId, validatedHabitId);
+        habitLogRepository.deleteAllByHabitIdAndDateBetween(validatedHabitId, from, to);
+    }
+
+    public void removeLogById(String authenticatedUserId, String logId) {
+        String validatedUserId = Objects.requireNonNull(authenticatedUserId, "authenticated userId must not be null");
+        String validatedLogId = Objects.requireNonNull(logId, "logId must not be null");
+
+        HabitLog habitLog = habitLogRepository.findById(validatedLogId)
+                .orElseThrow(() -> new ResourceNotFoundException("Habit log not found with id: " + validatedLogId));
+
+        getOwnedHabitOrThrow(validatedUserId, habitLog.getHabitId());
+        habitLogRepository.deleteById(validatedLogId);
     }
 
     private Habit getOwnedHabitOrThrow(String authenticatedUserId, String habitId) {

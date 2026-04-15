@@ -11,7 +11,9 @@ import com.tp1.habittracker.repository.UserRepository;
 import com.tp1.habittracker.service.OllamaClient;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -44,8 +46,8 @@ public class StartupDataSeeder implements CommandLineRunner {
         }
 
         User user = userRepository.save(User.builder()
-                .username("demo_user")
-                .email("demo.user@example.com")
+                .username("manu_sanchez")
+                .email("manu.sanchez@gmail.com")
                 .password(passwordEncoder.encode("seed-password"))
                 .build());
 
@@ -54,61 +56,106 @@ public class StartupDataSeeder implements CommandLineRunner {
                         return;
                 }
 
-        Habit hydrationHabit = habitRepository.save(Habit.builder()
+        LocalDate today = LocalDate.now();
+        List<HabitLog> allHabitLogs = new ArrayList<>();
+
+        // High streak daily habit (45 days consecutive): Drink 2L water
+        Habit highStreakDaily = habitRepository.save(Habit.builder()
                 .userId(user.getId().toString())
                 .isDefault(false)
                 .name("Drink 2L water")
                 .type(HabitType.BOOLEAN)
                 .frequency(Frequency.DAILY)
-                .createdAt(Instant.now().minus(7, ChronoUnit.DAYS))
+                .createdAt(Instant.now().minus(50, ChronoUnit.DAYS))
                 .embedding(ollamaClient.generateEmbedding("Drink 2L water"))
                 .build());
+        allHabitLogs.addAll(generateDailyHabitLogs(highStreakDaily.getId(), 45, today));
 
-        Habit readingHabit = habitRepository.save(Habit.builder()
+        // Medium streak daily habit (18 days consecutive): Read pages
+        Habit mediumStreakDaily = habitRepository.save(Habit.builder()
                 .userId(user.getId().toString())
                 .isDefault(false)
                 .name("Read pages")
                 .type(HabitType.NUMBER)
                 .frequency(Frequency.DAILY)
-                .createdAt(Instant.now().minus(5, ChronoUnit.DAYS))
+                .createdAt(Instant.now().minus(25, ChronoUnit.DAYS))
                 .embedding(ollamaClient.generateEmbedding("Read pages"))
                 .build());
-                
-        Habit planningHabit = habitRepository.save(Habit.builder()
+        allHabitLogs.addAll(generateDailyHabitLogsWithValues(mediumStreakDaily.getId(), 18, today, 15.0, 35.0));
+
+        // Low streak daily habit (4 days consecutive): Exercise 30 min
+        Habit lowStreakDaily = habitRepository.save(Habit.builder()
+                .userId(user.getId().toString())
+                .isDefault(false)
+                .name("Exercise 30 min")
+                .type(HabitType.BOOLEAN)
+                .frequency(Frequency.DAILY)
+                .createdAt(Instant.now().minus(10, ChronoUnit.DAYS))
+                .embedding(ollamaClient.generateEmbedding("Exercise 30 min"))
+                .build());
+        allHabitLogs.addAll(generateDailyHabitLogs(lowStreakDaily.getId(), 4, today));
+
+        // Zero streak daily habit (created but no logs): Learning session
+        Habit zeroStreakDaily = habitRepository.save(Habit.builder()
+                .userId(user.getId().toString())
+                .isDefault(false)
+                .name("Learning session")
+                .type(HabitType.TEXT)
+                .frequency(Frequency.DAILY)
+                .createdAt(Instant.now().minus(5, ChronoUnit.DAYS))
+                .embedding(ollamaClient.generateEmbedding("Learning session"))
+                .build());
+        // No logs for this habit - will show 0 streak
+
+        // Medium streak weekly habit (6 weeks consecutive): Weekly planning
+        Habit mediumStreakWeekly = habitRepository.save(Habit.builder()
                 .userId(user.getId().toString())
                 .isDefault(false)
                 .name("Weekly planning")
                 .type(HabitType.TEXT)
                 .frequency(Frequency.WEEKLY)
-                .createdAt(Instant.now().minus(14, ChronoUnit.DAYS))
+                .createdAt(Instant.now().minus(50, ChronoUnit.DAYS))
                 .embedding(ollamaClient.generateEmbedding("Weekly planning"))
                 .build());
+        allHabitLogs.addAll(generateWeeklyHabitLogs(mediumStreakWeekly.getId(), 6, today));
 
-                if (hydrationHabit == null || readingHabit == null || planningHabit == null) {
-                        LOGGER.warn("Skipping habit log seed because repositories are not returning persisted habits.");
-                        return;
-                }
+        // Low streak monthly habit (3 months consecutive): Pay bills
+        Habit lowStreakMonthly = habitRepository.save(Habit.builder()
+                .userId(user.getId().toString())
+                .isDefault(false)
+                .name("Pay bills")
+                .type(HabitType.BOOLEAN)
+                .frequency(Frequency.MONTHLY)
+                .createdAt(Instant.now().minus(120, ChronoUnit.DAYS))
+                .embedding(ollamaClient.generateEmbedding("Pay bills"))
+                .build());
+        allHabitLogs.addAll(generateMonthlyHabitLogs(lowStreakMonthly.getId(), 3, today));
 
-        LocalDate today = LocalDate.now();
-        List<HabitLog> habitLogs = List.of(
-                HabitLog.builder().habitId(hydrationHabit.getId()).date(today.minusDays(2)).value(true).build(),
-                HabitLog.builder().habitId(hydrationHabit.getId()).date(today.minusDays(1)).value(true).build(),
-                HabitLog.builder().habitId(hydrationHabit.getId()).date(today).value(true).build(),
-                HabitLog.builder().habitId(readingHabit.getId()).date(today.minusDays(2)).value(18.0).build(),
-                HabitLog.builder().habitId(readingHabit.getId()).date(today.minusDays(1)).value(24.0).build(),
-                HabitLog.builder().habitId(readingHabit.getId()).date(today).value(30.0).build(),
-                HabitLog.builder().habitId(planningHabit.getId()).date(today.minusDays(7)).value("Planned top 3 priorities").build(),
-                HabitLog.builder().habitId(planningHabit.getId()).date(today).value("Reviewed and planned next week").build()
-        );
-        habitLogRepository.saveAll(habitLogs);
+        if (highStreakDaily == null || mediumStreakDaily == null || lowStreakDaily == null 
+            || zeroStreakDaily == null || mediumStreakWeekly == null || lowStreakMonthly == null) {
+                LOGGER.warn("Skipping habit log seed because repositories are not returning persisted habits.");
+                return;
+        }
 
-        LOGGER.info("Startup seed inserted: 1 user, 3 habits, 8 habit logs.");
+        habitLogRepository.saveAll(allHabitLogs);
+
+        LOGGER.info("Startup seed inserted: 1 user, 6 habits ({} high, {} medium, {} low, {} zero streak), {} habit logs.",
+                1, 2, 2, 1, allHabitLogs.size());
     }
 
         private void ensureDefaultHabits() {
                 seedDefaultHabit("Drink 2L water", HabitType.BOOLEAN, Frequency.DAILY, 7);
                 seedDefaultHabit("Read pages", HabitType.NUMBER, Frequency.DAILY, 5);
                 seedDefaultHabit("Weekly planning", HabitType.TEXT, Frequency.WEEKLY, 14);
+                seedDefaultHabit("Check bank account", HabitType.BOOLEAN, Frequency.WEEKLY, 10);
+                seedDefaultHabit("Pay credit card / bills", HabitType.BOOLEAN, Frequency.MONTHLY, 30);
+                seedDefaultHabit("Take out the trash", HabitType.BOOLEAN, Frequency.WEEKLY, 9);
+                seedDefaultHabit("Clean a room", HabitType.BOOLEAN, Frequency.WEEKLY, 12);
+                seedDefaultHabit("Go grocery shopping", HabitType.BOOLEAN, Frequency.WEEKLY, 8);
+                seedDefaultHabit("Track expenses", HabitType.TEXT, Frequency.DAILY, 6);
+                seedDefaultHabit("Screen time check", HabitType.NUMBER, Frequency.DAILY, 4);
+                seedDefaultHabit("Call or message a friend/family member", HabitType.BOOLEAN, Frequency.WEEKLY, 11);
+                seedDefaultHabit("Review weekly goals", HabitType.TEXT, Frequency.WEEKLY, 7);
         }
 
         private void seedDefaultHabit(String name, HabitType type, Frequency frequency, long daysAgo) {
@@ -126,6 +173,62 @@ public class StartupDataSeeder implements CommandLineRunner {
                                 .embedding(ollamaClient.generateEmbedding(name))
                                 .build());
         }
+
+    private List<HabitLog> generateDailyHabitLogs(String habitId, long consecutiveDays, LocalDate endDate) {
+        List<HabitLog> logs = new ArrayList<>();
+        for (long i = consecutiveDays - 1; i >= 0; i--) {
+            LocalDate logDate = endDate.minusDays(i);
+            logs.add(HabitLog.builder()
+                    .habitId(habitId)
+                    .date(logDate)
+                    .value(true)
+                    .build());
+        }
+        return logs;
+    }
+
+    private List<HabitLog> generateDailyHabitLogsWithValues(String habitId, long consecutiveDays, LocalDate endDate, 
+                                                             double minValue, double maxValue) {
+        List<HabitLog> logs = new ArrayList<>();
+        for (long i = consecutiveDays - 1; i >= 0; i--) {
+            LocalDate logDate = endDate.minusDays(i);
+            double value = minValue + (Math.random() * (maxValue - minValue));
+            logs.add(HabitLog.builder()
+                    .habitId(habitId)
+                    .date(logDate)
+                    .value(value)
+                    .build());
+        }
+        return logs;
+    }
+
+    private List<HabitLog> generateWeeklyHabitLogs(String habitId, long consecutiveWeeks, LocalDate endDate) {
+        List<HabitLog> logs = new ArrayList<>();
+        LocalDate currentDate = endDate;
+        for (long i = 0; i < consecutiveWeeks; i++) {
+            logs.add(HabitLog.builder()
+                    .habitId(habitId)
+                    .date(currentDate)
+                    .value("Week " + (consecutiveWeeks - i) + " completed")
+                    .build());
+            currentDate = currentDate.minusWeeks(1);
+        }
+        return logs;
+    }
+
+    private List<HabitLog> generateMonthlyHabitLogs(String habitId, long consecutiveMonths, LocalDate endDate) {
+        List<HabitLog> logs = new ArrayList<>();
+        YearMonth currentMonth = YearMonth.from(endDate);
+        for (long i = 0; i < consecutiveMonths; i++) {
+            logs.add(HabitLog.builder()
+                    .habitId(habitId)
+                    .date(currentMonth.atDay(1))
+                    .value(true)
+                    .build());
+            currentMonth = currentMonth.minusMonths(1);
+        }
+        return logs;
+    }
 
     private boolean hasExistingData() {
                 return userRepository.count() > 0 || habitLogRepository.count() > 0;
