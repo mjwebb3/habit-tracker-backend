@@ -9,7 +9,7 @@ Persistence model:
 - Relationship is maintained by `userId` as a String UUID in Habit documents
 
 ## Tech stack
-
+ 
 - Java 21
 - Spring Boot
 - Spring Data MongoDB
